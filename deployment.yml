@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 100Mi  
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /meubanco/
+
+--- 
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: local
+spec:
+  resources:
+    requests:
+      storage: 100Mi   
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual
+
+---  
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:      
+      - image: bombonatto/projeto-database:1.0
+        name: mysql
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: Senha123
+        - name: MYSQL_DATABASE
+          value: meubanco                  
+        ports:
+        - containerPort: 3306
+          name: mysql
+        
+        volumeMounts:
+        - name: local
+          mountPath: /var/lib/mysql
+      volumes:
+        - name: local
+          persistentVolumeClaim:
+            claimName: local
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php
+  labels:
+    app: php
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: php  
+  template:
+    metadata:
+      labels: 
+        app: php
+    spec:
+      containers:
+      - name: php
+        image: bombonatto/projeto-backend-php:1.0      
+        ports:
+        - containerPort: 80    
+
+
